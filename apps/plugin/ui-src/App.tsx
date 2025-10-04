@@ -11,6 +11,7 @@ import {
   ErrorMessage,
   SettingsChangedMessage,
   Warning,
+  ScreenData,
 } from "types";
 import { postUISettingsChangingMessage } from "./messaging";
 import copy from "copy-to-clipboard";
@@ -33,6 +34,8 @@ interface AppState {
   warnings: Warning[];
   authState: AuthState;
   authChecked: boolean;
+  screens: ScreenData[];
+  currentScreenIndex: number;
 }
 
 const emptyPreview = { size: { width: 0, height: 0 }, content: "" };
@@ -53,6 +56,8 @@ export default function App() {
       user: null,
     },
     authChecked: false,
+    screens: [],
+    currentScreenIndex: 0,
   });
 
   const rootStyles = getComputedStyle(document.documentElement);
@@ -102,12 +107,34 @@ export default function App() {
 
         case "code":
           const conversionMessage = untypedMessage as ConversionMessage;
-          setState((prevState) => ({
-            ...prevState,
-            ...conversionMessage,
-            selectedFramework: conversionMessage.settings.framework,
-            isLoading: false,
-          }));
+
+          // If screens array is present, use the first screen's data
+          if (conversionMessage.screens && conversionMessage.screens.length > 0) {
+            const firstScreen = conversionMessage.screens[0];
+            setState((prevState) => ({
+              ...prevState,
+              code: firstScreen.code,
+              htmlPreview: firstScreen.htmlPreview,
+              warnings: firstScreen.warnings,
+              colors: conversionMessage.colors,
+              gradients: conversionMessage.gradients,
+              settings: conversionMessage.settings,
+              selectedFramework: conversionMessage.settings.framework,
+              screens: conversionMessage.screens,
+              currentScreenIndex: 0,
+              isLoading: false,
+            }));
+          } else {
+            // Backward compatibility: single screen
+            setState((prevState) => ({
+              ...prevState,
+              ...conversionMessage,
+              selectedFramework: conversionMessage.settings.framework,
+              screens: [],
+              currentScreenIndex: 0,
+              isLoading: false,
+            }));
+          }
           break;
 
         case "pluginSettingChanged":
@@ -128,6 +155,8 @@ export default function App() {
             warnings: [],
             colors: [],
             gradients: [],
+            screens: [],
+            currentScreenIndex: 0,
             isLoading: false,
           }));
           break;
@@ -199,6 +228,19 @@ export default function App() {
     clearAuthData();
   };
 
+  const handleScreenChange = (index: number) => {
+    if (state.screens.length > 0 && index >= 0 && index < state.screens.length) {
+      const screen = state.screens[index];
+      setState((prevState) => ({
+        ...prevState,
+        currentScreenIndex: index,
+        code: screen.code,
+        htmlPreview: screen.htmlPreview,
+        warnings: screen.warnings,
+      }));
+    }
+  };
+
   const darkMode = figmaColorBgValue !== "#ffffff";
 
   // Show loading state while checking auth
@@ -234,6 +276,9 @@ export default function App() {
         gradients={state.gradients}
         authState={state.authState}
         onLogout={handleLogout}
+        screens={state.screens}
+        currentScreenIndex={state.currentScreenIndex}
+        onScreenChange={handleScreenChange}
       />
     </div>
   );
