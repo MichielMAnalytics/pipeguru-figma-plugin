@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PluginUI } from "plugin-ui";
+import { PluginUI, LoginScreen } from "plugin-ui";
 import {
   Framework,
   PluginSettings,
@@ -14,6 +14,13 @@ import {
 } from "types";
 import { postUISettingsChangingMessage } from "./messaging";
 import copy from "copy-to-clipboard";
+import {
+  loginToPipeGuru,
+  storeAuthData,
+  requestAuthState,
+  clearAuthData,
+  type AuthState,
+} from "plugin-ui";
 
 interface AppState {
   code: string;
@@ -24,6 +31,8 @@ interface AppState {
   colors: SolidColorConversion[];
   gradients: LinearGradientConversion[];
   warnings: Warning[];
+  authState: AuthState;
+  authChecked: boolean;
 }
 
 const emptyPreview = { size: { width: 0, height: 0 }, content: "" };
@@ -38,6 +47,12 @@ export default function App() {
     colors: [],
     gradients: [],
     warnings: [],
+    authState: {
+      isAuthenticated: false,
+      token: null,
+      user: null,
+    },
+    authChecked: false,
   });
 
   const rootStyles = getComputedStyle(document.documentElement);
@@ -46,11 +61,37 @@ export default function App() {
     .trim();
 
   useEffect(() => {
+    // Check authentication on mount
+    requestAuthState();
+
     window.onmessage = (event: MessageEvent) => {
-      const untypedMessage = event.data.pluginMessage as Message;
+      const untypedMessage = event.data.pluginMessage as any;
       console.log("[ui] message received:", untypedMessage);
 
       switch (untypedMessage.type) {
+        case "pipeguru-auth-state-response":
+          setState((prevState) => ({
+            ...prevState,
+            authState: {
+              isAuthenticated: untypedMessage.isAuthenticated,
+              token: untypedMessage.token,
+              user: untypedMessage.user,
+            },
+            authChecked: true,
+          }));
+          break;
+
+        case "pipeguru-token-cleared":
+          setState((prevState) => ({
+            ...prevState,
+            authState: {
+              isAuthenticated: false,
+              token: null,
+              user: null,
+            },
+          }));
+          break;
+
         case "conversionStart":
           setState((prevState) => ({
             ...prevState,
@@ -140,7 +181,43 @@ export default function App() {
     }
   };
 
+  const handleLogin = async (email: string, password: string) => {
+    const result = await loginToPipeGuru(email, password);
+    storeAuthData(result.token, result.user);
+
+    setState((prevState) => ({
+      ...prevState,
+      authState: {
+        isAuthenticated: true,
+        token: result.token,
+        user: result.user,
+      },
+    }));
+  };
+
+  const handleLogout = () => {
+    clearAuthData();
+  };
+
   const darkMode = figmaColorBgValue !== "#ffffff";
+
+  // Show loading state while checking auth
+  if (!state.authChecked) {
+    return (
+      <div className={`${darkMode ? "dark" : ""} h-full flex items-center justify-center`}>
+        <div className="text-sm text-gray-500 dark:text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login screen if not authenticated
+  if (!state.authState.isAuthenticated) {
+    return (
+      <div className={`${darkMode ? "dark" : ""} h-full`}>
+        <LoginScreen onLogin={handleLogin} />
+      </div>
+    );
+  }
 
   return (
     <div className={`${darkMode ? "dark" : ""}`}>
@@ -155,6 +232,8 @@ export default function App() {
         settings={state.settings}
         colors={state.colors}
         gradients={state.gradients}
+        authState={state.authState}
+        onLogout={handleLogout}
       />
     </div>
   );

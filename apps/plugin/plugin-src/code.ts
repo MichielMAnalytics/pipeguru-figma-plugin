@@ -158,7 +158,36 @@ const standardMode = async () => {
   figma.ui.onmessage = async (msg) => {
     console.log("[DEBUG] figma.ui.onmessage", msg);
 
-    if (msg.type === "pluginSettingWillChange") {
+    if (msg.type === "pipeguru-store-token") {
+      // Store PipeGuru authentication token and user info
+      console.log("[DEBUG] Storing PipeGuru auth data");
+      await figma.clientStorage.setAsync("pipeguru_token", msg.token);
+      await figma.clientStorage.setAsync("pipeguru_user", msg.user);
+      figma.ui.postMessage({
+        type: "pipeguru-token-stored",
+        success: true,
+      });
+    } else if (msg.type === "pipeguru-check-auth") {
+      // Check authentication status
+      console.log("[DEBUG] Checking PipeGuru auth status");
+      const token = await figma.clientStorage.getAsync("pipeguru_token");
+      const user = await figma.clientStorage.getAsync("pipeguru_user");
+      figma.ui.postMessage({
+        type: "pipeguru-auth-state-response",
+        isAuthenticated: !!token,
+        token: token || null,
+        user: user || null,
+      });
+    } else if (msg.type === "pipeguru-clear-token") {
+      // Clear authentication data
+      console.log("[DEBUG] Clearing PipeGuru auth data");
+      await figma.clientStorage.deleteAsync("pipeguru_token");
+      await figma.clientStorage.deleteAsync("pipeguru_user");
+      figma.ui.postMessage({
+        type: "pipeguru-token-cleared",
+        success: true,
+      });
+    } else if (msg.type === "pluginSettingWillChange") {
       const { key, value } = msg as SettingWillChangeMessage<unknown>;
       console.log(`[DEBUG] Setting changed: ${key} = ${value}`);
       (userPluginSettings as any)[key] = value;
