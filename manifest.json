@@ -1,5 +1,5 @@
 {
-  "name": "Figma to Code [HTML, Tailwind, Flutter, SwiftUI]",
+  "name": "Pipeguru Figma to Code",
   "id": "842128343887142055",
   "api": "1.0.0",
   "main": "apps/plugin/dist/code.js",
@@ -9,7 +9,12 @@
   "permissions": [],
   "documentAccess": "dynamic-page",
   "networkAccess": {
-    "allowedDomains": ["none"]
+    "allowedDomains": [
+      "https://pipeguru.ai"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:8000"
+    ]
   },
   "codegenLanguages": [
     { "label": "HTML", "value": "html" },

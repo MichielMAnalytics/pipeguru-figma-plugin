@@ -3,6 +3,7 @@ import {
   LocalCodegenPreferenceOptions,
   PluginSettings,
   SelectPreferenceOptions,
+  Warning,
 } from "types";
 import { useMemo, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -13,7 +14,8 @@ import SettingsGroup from "./SettingsGroup";
 import FrameworkTabs from "./FrameworkTabs";
 import { TailwindSettings } from "./TailwindSettings";
 import { SendToPipeGuruButton } from "./SendToPipeGuruButton";
-import { sendToPipeGuru, getAuthTokenFromUrl } from "../lib/pipeguru-api";
+import { sendToPipeGuru } from "../lib/pipeguru-api";
+import { clearAuthData, type AuthState } from "../lib/auth-storage";
 
 interface CodePanelProps {
   code: string;
@@ -25,6 +27,8 @@ interface CodePanelProps {
     key: keyof PluginSettings,
     value: boolean | string | number,
   ) => void;
+  authState: AuthState;
+  warnings: Warning[];
 }
 
 const CodePanel = (props: CodePanelProps) => {
@@ -99,17 +103,39 @@ const CodePanel = (props: CodePanelProps) => {
 
   // Handler for sending to PipeGuru
   const handleSendToPipeGuru = async () => {
-    const authToken = getAuthTokenFromUrl();
+    if (!props.authState.token) {
+      throw new Error("Not authenticated");
+    }
 
-    await sendToPipeGuru(
-      {
-        html: prefixedCode,
-        framework: selectedFramework,
-        timestamp: new Date().toISOString(),
-        designName: "Figma Design", // TODO: Get actual design name from Figma
-      },
-      authToken
-    );
+    try {
+      const flowName = "Figma Design"; // TODO: Get actual design name from Figma
+      const screens = [
+        {
+          name: "Screen", // TODO: Get actual screen name from Figma selection
+          html: prefixedCode,
+          warnings: props.warnings, // Include warnings from the conversion
+        },
+      ];
+
+      console.log('[PipeGuru Send] Flow name:', flowName);
+      console.log('[PipeGuru Send] HTML length:', prefixedCode.length);
+      console.log('[PipeGuru Send] Warnings count:', props.warnings.length);
+      console.log('[PipeGuru Send] Warnings:', props.warnings);
+      console.log('[PipeGuru Send] HTML preview:', prefixedCode.substring(0, 200));
+      console.log('[PipeGuru Send] Screens payload:', JSON.stringify(screens, null, 2));
+
+      const result = await sendToPipeGuru(flowName, screens, props.authState.token);
+
+      // Show success notification with redirect URL
+      console.log("Successfully imported to PipeGuru:", result.redirect_url);
+    } catch (error) {
+      if (error instanceof Error && error.message === "UNAUTHORIZED") {
+        // Token expired - clear auth and trigger re-login
+        clearAuthData();
+        throw new Error("Session expired. Please log in again.");
+      }
+      throw error;
+    }
   };
 
   // Memoized preference groups for better performance
@@ -166,8 +192,6 @@ const CodePanel = (props: CodePanelProps) => {
 
       {!isCodeEmpty && (
         <SendToPipeGuruButton
-          code={prefixedCode}
-          framework={selectedFramework}
           onSend={handleSendToPipeGuru}
         />
       )}

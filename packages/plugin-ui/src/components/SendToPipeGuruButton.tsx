@@ -2,15 +2,11 @@ import { useState } from "react";
 import { Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 interface SendToPipeGuruButtonProps {
-  code: string;
-  framework: string;
   onSend: () => Promise<void>;
   disabled?: boolean;
 }
 
 export const SendToPipeGuruButton = ({
-  code,
-  framework,
   onSend,
   disabled = false,
 }: SendToPipeGuruButtonProps) => {
@@ -18,7 +14,7 @@ export const SendToPipeGuruButton = ({
   const [errorMessage, setErrorMessage] = useState<string>("");
 
   const handleClick = async () => {
-    if (disabled || !code || status === "sending") return;
+    if (disabled || status === "sending") return;
 
     setStatus("sending");
     setErrorMessage("");
@@ -86,7 +82,7 @@ export const SendToPipeGuruButton = ({
         return `${baseStyles} bg-red-500 text-white cursor-pointer hover:bg-red-600`;
       default:
         return `${baseStyles} bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 ${
-          disabled || !code ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
         }`;
     }
   };
@@ -95,9 +91,9 @@ export const SendToPipeGuruButton = ({
     <div className="w-full">
       <button
         onClick={handleClick}
-        disabled={disabled || !code || status === "sending"}
+        disabled={disabled || status === "sending"}
         className={getButtonStyles()}
-        title={!code ? "Generate code first" : "Send HTML to PipeGuru"}
+        title="Send HTML to PipeGuru"
       >
         {getButtonContent()}
       </button>

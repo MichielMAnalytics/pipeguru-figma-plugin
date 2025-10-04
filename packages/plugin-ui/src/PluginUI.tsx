@@ -19,8 +19,9 @@ import {
 } from "./codegenPreferenceOptions";
 import Loading from "./components/Loading";
 import { useState } from "react";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, LogOut } from "lucide-react";
 import React from "react";
+import { AuthState } from "./lib/auth-storage";
 
 type PluginUIProps = {
   code: string;
@@ -36,6 +37,8 @@ type PluginUIProps = {
   colors: SolidColorConversion[];
   gradients: LinearGradientConversion[];
   isLoading: boolean;
+  authState: AuthState;
+  onLogout: () => void;
 };
 
 const frameworks: Framework[] = ["HTML", "Tailwind", "Flutter", "SwiftUI"];
@@ -95,36 +98,33 @@ export const PluginUI = (props: PluginUIProps) => {
 
   return (
     <div className="flex flex-col h-full dark:text-white">
-      {/* Hidden: Framework selector - PipeGuru only uses HTML */}
-      {/* <div className="p-2 dark:bg-card">
-        <div className="flex gap-1 bg-muted dark:bg-card rounded-lg p-1">
-          <FrameworkTabs
-            frameworks={frameworks}
-            selectedFramework={props.selectedFramework}
-            setSelectedFramework={props.setSelectedFramework}
-            showAbout={showAbout}
-            setShowAbout={setShowAbout}
-          />
+      {/* Header with user info and logout button */}
+      <div className="p-2 dark:bg-card border-b dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-xs font-medium">
+              {props.authState.user?.name?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium dark:text-white">
+                {props.authState.user?.name || 'User'}
+              </span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {props.authState.user?.email || ''}
+              </span>
+            </div>
+          </div>
           <button
-            className={`w-8 h-8 flex items-center justify-center rounded-md text-sm font-medium ${
-              showAbout
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted hover:bg-primary/90 hover:text-primary-foreground"
-            }`}
-            onClick={() => setShowAbout(!showAbout)}
-            aria-label="About"
+            onClick={props.onLogout}
+            className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+            title="Logout from PipeGuru"
           >
-            <InfoIcon size={16} />
+            <LogOut size={14} />
+            <span>Logout</span>
           </button>
         </div>
       </div>
-      <div
-        style={{
-          height: 1,
-          width: "100%",
-          backgroundColor: "rgba(255,255,255,0.12)",
-        }}
-      ></div> */}
+
       <div className="flex flex-col h-full overflow-y-auto">
         {showAbout ? (
           <About
@@ -154,6 +154,8 @@ export const PluginUI = (props: PluginUIProps) => {
               selectPreferenceOptions={selectPreferenceOptions}
               settings={props.settings}
               onPreferenceChanged={props.onPreferenceChanged}
+              authState={props.authState}
+              warnings={warnings}
             />
 
             {props.colors.length > 0 && (
