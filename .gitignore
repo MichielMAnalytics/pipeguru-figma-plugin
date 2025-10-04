@@ -28,4 +28,5 @@ test/**/next-env.d.ts
 **/.vscode
 
 build
-.turbo
+.turbo.env
+.env

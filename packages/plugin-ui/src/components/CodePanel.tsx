@@ -12,6 +12,8 @@ import EmptyState from "./EmptyState";
 import SettingsGroup from "./SettingsGroup";
 import FrameworkTabs from "./FrameworkTabs";
 import { TailwindSettings } from "./TailwindSettings";
+import { SendToPipeGuruButton } from "./SendToPipeGuruButton";
+import { sendToPipeGuru, getAuthTokenFromUrl } from "../lib/pipeguru-api";
 
 interface CodePanelProps {
   code: string;
@@ -95,6 +97,21 @@ const CodePanel = (props: CodePanelProps) => {
   const handleButtonHover = () => setSyntaxHovered(true);
   const handleButtonLeave = () => setSyntaxHovered(false);
 
+  // Handler for sending to PipeGuru
+  const handleSendToPipeGuru = async () => {
+    const authToken = getAuthTokenFromUrl();
+
+    await sendToPipeGuru(
+      {
+        html: prefixedCode,
+        framework: selectedFramework,
+        timestamp: new Date().toISOString(),
+        designName: "Figma Design", // TODO: Get actual design name from Figma
+      },
+      authToken
+    );
+  };
+
   // Memoized preference groups for better performance
   const {
     essentialPreferences,
@@ -146,6 +163,14 @@ const CodePanel = (props: CodePanelProps) => {
           />
         )}
       </div>
+
+      {!isCodeEmpty && (
+        <SendToPipeGuruButton
+          code={prefixedCode}
+          framework={selectedFramework}
+          onSend={handleSendToPipeGuru}
+        />
+      )}
 
       {!isCodeEmpty && (
         <div className="flex flex-col p-3 bg-card border rounded-lg text-sm">

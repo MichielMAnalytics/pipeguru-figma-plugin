@@ -95,7 +95,8 @@ export const PluginUI = (props: PluginUIProps) => {
 
   return (
     <div className="flex flex-col h-full dark:text-white">
-      <div className="p-2 dark:bg-card">
+      {/* Hidden: Framework selector - PipeGuru only uses HTML */}
+      {/* <div className="p-2 dark:bg-card">
         <div className="flex gap-1 bg-muted dark:bg-card rounded-lg p-1">
           <FrameworkTabs
             frameworks={frameworks}
@@ -123,7 +124,7 @@ export const PluginUI = (props: PluginUIProps) => {
           width: "100%",
           backgroundColor: "rgba(255,255,255,0.12)",
         }}
-      ></div>
+      ></div> */}
       <div className="flex flex-col h-full overflow-y-auto">
         {showAbout ? (
           <About
